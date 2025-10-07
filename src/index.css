@@ -25,33 +25,51 @@ a:hover {
 body {
   margin: 0;
   display: flex;
-  place-items: center;
+  justify-content: center;
+  align-items: center;
   min-width: 320px;
   min-height: 100vh;
+  background-color: var(--background-color, #242424);
+}
+
+/* 🧼 Centered login container */
+.auth-container {
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 40px;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(6px);
+  width: 100%;
+  max-width: 400px;
+}
+
+/* 🧾 Form inputs */
+input {
+  width: 100%;
+  padding: 12px;
+  margin: 10px 0;
+  font-size: 1rem;
+  border-radius: 6px;
+  border: 1px solid #555;
+  background: #1a1a1a;
+  color: #fff;
+}
+
+input:focus {
+  outline: none;
+  border-color: #646cff;
+}
+
+/* 🔘 Buttons (inherits existing style) */
+button {
+  width: 48%;
+  margin: 10px 1%;
 }
 
 h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+  font-size: 2em;
+  margin-bottom: 20px;
 }
 
 @media (prefers-color-scheme: light) {
@@ -59,10 +77,24 @@ button:focus-visible {
     color: #213547;
     background-color: #ffffff;
   }
-  a:hover {
-    color: #747bff;
+
+  .auth-container {
+    background: #ffffff;
+    color: #000;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
   }
+
+  input {
+    background: #fff;
+    color: #000;
+    border: 1px solid #ccc;
+  }
+
   button {
     background-color: #f9f9f9;
+  }
+
+  a:hover {
+    color: #747bff;
   }
 }
