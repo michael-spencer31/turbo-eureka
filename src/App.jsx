@@ -1,231 +1,228 @@
 // src/App.jsx
 import { useState, useEffect } from 'react'
 import { supabase } from './supabaseClient'
+import toast from 'react-hot-toast'
+import CreateEventForm from './components/CreateEventForm'
+import HostedEventsList from './components/HostedEventsList'
+import RSVPButton from './components/RSVPButton'
+import AvailableEventsList from './components/AvailableEventsList'
+
 
 function App() {
-  const [user, setUser] = useState(null)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [role, setRole] = useState('guest')
+  const [user, setUser] = useState(null)
+  const [guestProfile, setGuestProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  const [events, setEvents] = useState([])
-  const [newEventTitle, setNewEventTitle] = useState('')
-
-  // ✅ Get session on initial load
+  // ✅ Fetch session on mount
   useEffect(() => {
     const getSession = async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
+      const { data, error } = await supabase.auth.getSession()
 
-      if (session?.user) {
-        setUser(session.user)
-        fetchEvents(session.user.id)
+      if (error) {
+        toast.error('Error getting session')
+        console.error(error)
+        setLoading(false)
+        return
       }
+
+      const sessionUser = data?.session?.user
+      if (sessionUser) {
+        setUser(sessionUser)
+        fetchGuestProfile(sessionUser.id)
+      }
+
+      setLoading(false)
     }
 
     getSession()
 
-    // ✅ Listen for auth state changes (signup/login)
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const newUser = session.user
-          setUser(newUser)
-          fetchEvents(newUser.id)
-
-          // Insert into profiles
-          const { error: profileError } = await supabase.from('profiles').insert([
-            {
-              id: newUser.id,
-              full_name: fullName,
-              role: role,
-            },
-          ])
-
-          if (profileError) {
-            console.error('Profile insert error:', profileError.message)
-          }
+    // ✅ Auth change listener
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      async (_event, session) => {
+        if (session?.user) {
+          setUser(session.user)
+          fetchGuestProfile(session.user.id)
+        } else {
+          setUser(null)
+          setGuestProfile(null)
         }
       }
     )
 
     return () => {
-      authListener.subscription.unsubscribe()
+      listener?.subscription?.unsubscribe?.()
     }
   }, [])
 
-  const handleSignUp = async () => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-  })
+  // ✅ Handle login or signup
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setLoading(true)
 
-  if (error) {
-    alert(error.message)
-    return
-  }
-
-  const newUser = data.user
-
-  if (!newUser) {
-    alert('Check your email to confirm your sign-up.')
-    return
-  }
-
-  // Wait for session to become available
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (!session) {
-    console.warn('No session yet — waiting for auth confirmation.')
-    return
-  }
-
-  const { error: profileError } = await supabase.from('profiles').insert([
-    {
-      id: newUser.id,
-      full_name: fullName,
-      role: role,
-    },
-  ])
-
-  if (profileError) {
-    console.error('Profile insert error:', profileError.message)
-    alert('Signup succeeded, but profile could not be created.')
-  }
-
-  setUser(newUser)
-}
-
-
-  // ✅ Login user
-  const handleLogin = async () => {
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
     if (error) {
-      alert(error.message)
+      // Try sign up
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+
+      if (signupError) {
+        toast.error(signupError.message)
+        console.error(signupError)
+      } else {
+        toast.success('Signed up! Check your email to confirm.')
+        setUser(signupData.user)
+      }
+    } else {
+      toast.success('Logged in!')
+      setUser(data.user)
+    }
+
+    setLoading(false)
+  }
+
+  // ✅ Fetch guest profile
+  const fetchGuestProfile = async (userId) => {
+    if (!userId) return
+
+    const { data, error } = await supabase
+      .from('guests')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    if (error) {
+      if (error.code !== 'PGRST116') {
+        toast.error('Error fetching profile')
+        console.error(error)
+      }
+    } else {
+      setGuestProfile(data)
+    }
+  }
+
+  // ✅ Handle profile creation
+  const handleProfileSave = async (e) => {
+    e.preventDefault()
+    setLoading(true)
+
+    if (!user || !user.id || !user.email) {
+      toast.error('User not authenticated')
+      setLoading(false)
       return
     }
 
-    const loggedInUser = data.user
-    setUser(loggedInUser)
-    fetchEvents(loggedInUser.id)
+    const form = e.target
+    const firstName = form.first_name.value
+    const lastName = form.last_name.value
+
+    const { data, error } = await supabase
+      .from('guests')
+      .insert({
+        user_id: user.id,
+        email: user.email,
+        first_name: firstName,
+        last_name: lastName,
+      })
+      .select()
+
+    if (error) {
+      toast.error('Failed to save profile')
+      console.error(error)
+    } else if (data && data.length > 0) {
+      toast.success('Profile saved!')
+      setGuestProfile(data[0])
+    } else {
+      toast.error('Profile saved, but no data returned.')
+    }
+
+    setLoading(false)
   }
 
   // ✅ Logout
   const handleLogout = async () => {
     await supabase.auth.signOut()
+    toast.success('Logged out!')
     setUser(null)
-    setEvents([])
+    setGuestProfile(null)
     setEmail('')
     setPassword('')
-    setFullName('')
-    setRole('guest')
   }
 
-  // ✅ Fetch events for this user
-  const fetchEvents = async (hostId) => {
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .eq('host_id', hostId)
-      .order('date', { ascending: true })
+  // ✅ Show loading screen
+  if (loading) return <p>Loading...</p>
 
-    if (error) {
-      console.error('Error fetching events:', error.message)
-    } else {
-      setEvents(data)
-    }
-  }
-
-  // ✅ Create a new event
-  const handleCreateEvent = async () => {
-    if (!newEventTitle.trim()) return
-
-    const { error } = await supabase.from('events').insert([
-      {
-        host_id: user.id,
-        title: newEventTitle,
-      },
-    ])
-
-    if (error) {
-      console.error('Error creating event:', error.message)
-    } else {
-      setNewEventTitle('')
-      fetchEvents(user.id)
-    }
-  }
-
-  return (
-    <div className="auth-container" style={{ padding: '2rem' }}>
-      <h1>Event Host App</h1>
-
-      {!user ? (
-        <>
+  // ✅ Show login form
+  if (!user) {
+    return (
+      <div style={{ padding: '2rem' }}>
+        <h2>Login or Sign Up</h2>
+        <form onSubmit={handleLogin}>
           <input
             type="email"
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            required
           /><br />
-
           <input
             type="password"
             placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            required
           /><br />
+          <button type="submit">Submit</button>
+        </form>
+      </div>
+    )
+  }
 
-          <input
-            type="text"
-            placeholder="Full Name"
-            value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
-          /><br />
-
-          <select value={role} onChange={(e) => setRole(e.target.value)}>
-            <option value="guest">Guest</option>
-            <option value="host">Host</option>
-          </select><br />
-
-          <button onClick={handleLogin}>Login</button>
-          <button onClick={handleSignUp}>Sign Up</button>
-        </>
-      ) : (
-        <>
-          <p>Welcome, {user.email}</p>
-          <button onClick={handleLogout}>Log out</button>
-
-          <hr />
-          <h2>Your Events</h2>
-
-          {events.length === 0 && <p>No events yet.</p>}
-          <ul>
-            {events.map((event) => (
-              <li key={event.id}>
-                {event.title} — {new Date(event.date).toLocaleString()}
-              </li>
-            ))}
-          </ul>
-
-          <input
-            type="text"
-            placeholder="New event title"
-            value={newEventTitle}
-            onChange={(e) => setNewEventTitle(e.target.value)}
-          />
-          <button onClick={handleCreateEvent}>Create Event</button>
-        </>
-      )}
+  // ✅ Show profile form if no profile exists
+  // ✅ Show profile form if no profile exists
+if (!guestProfile) {
+  return (
+    <div style={{ padding: '2rem' }}>
+      <h2>Complete Your Profile</h2>
+      <form onSubmit={handleProfileSave}>
+        <input type="text" name="first_name" placeholder="First Name" required /><br />
+        <input type="text" name="last_name" placeholder="Last Name" required /><br />
+        <button type="submit">Save Profile</button>
+      </form>
+      <button onClick={handleLogout} style={{ marginTop: '1rem' }}>
+        Log Out
+      </button>
     </div>
   )
+}
+
+
+  // ✅ Dashboard after login + profile setup
+  return (
+  <div style={{ padding: '2rem' }}>
+    <h2>Welcome, {guestProfile.first_name}!</h2>
+    <p>Email: {guestProfile.email}</p>
+    <p>Name: {guestProfile.first_name} {guestProfile.last_name}</p>
+
+    <CreateEventForm guestId={guestProfile.id} />
+    <HostedEventsList guestId={guestProfile.id} />  
+    <AvailableEventsList guestId={guestProfile?.id} />
+
+    <button onClick={handleLogout} style={{ marginTop: '2rem' }}>
+      Log Out
+    </button>
+  </div>
+)
+
+
+
 }
 
 export default App
