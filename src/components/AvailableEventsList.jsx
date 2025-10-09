@@ -6,39 +6,60 @@ import RSVPList from './RSVPList'
 
 export default function AvailableEventsList({ guestId }) {
   const [events, setEvents] = useState([])
+  const [rsvpData, setRsvpData] = useState({})
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-  if (!guestId) {
-    console.warn('guestId not ready yet')
-    return
-  }
-
-  const fetchAvailableEvents = async () => {
-    setLoading(true)
-
-    const { data, error } = await supabase
-      .from('events')
-      .select('*')
-      .neq('event_host', guestId)
-      .order('event_date', { ascending: true })
-
-    console.log('Current guestId:', guestId)
-    console.log('Fetched events (excluding host):', data)
-
-    if (error) {
-      toast.error('Failed to fetch events')
-      console.error(error)
-    } else {
-      setEvents(data)
+    if (!guestId) {
+      console.warn('guestId not ready yet')
+      return
     }
 
-    setLoading(false)
+    const fetchAvailableEvents = async () => {
+      setLoading(true)
+
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .neq('event_host', guestId)
+        .order('event_date', { ascending: true })
+
+      if (error) {
+        toast.error('Failed to fetch events')
+        console.error(error)
+      } else {
+        setEvents(data)
+
+        // Pre-fetch RSVP lists for each event
+        data.forEach(event => {
+          fetchRSVPsForEvent(event.id)
+        })
+      }
+
+      setLoading(false)
+    }
+
+    fetchAvailableEvents()
+  }, [guestId])
+
+  // ✅ Fetch RSVPs for a specific event
+  const fetchRSVPsForEvent = async (eventId) => {
+    const { data, error } = await supabase
+      .from('rsvps')
+      .select('id, guest_id, guest:guest_id(first_name, last_name), status')
+      .eq('event_id', eventId)
+
+    if (error) {
+      console.error('Failed to fetch RSVPs for event', eventId, error)
+      toast.error('Failed to fetch RSVPs')
+      return
+    }
+
+    setRsvpData(prev => ({
+      ...prev,
+      [eventId]: data
+    }))
   }
-
-  fetchAvailableEvents()
-}, [guestId])
-
 
   if (loading) return <p>Loading events to RSVP to...</p>
   if (events.length === 0) return <p>No events available for RSVP.</p>
@@ -53,8 +74,18 @@ export default function AvailableEventsList({ guestId }) {
             📍 {event.location || 'No location'}<br />
             🗓️ {new Date(event.event_date).toLocaleString()}
             {event.description && <p>{event.description}</p>}
-            <RSVPButton guestId={guestId} eventId={event.id} />
-            <RSVPList eventId={event.id} />
+
+            <RSVPButton
+              guestId={guestId}
+              eventId={event.id}
+              onRSVP={() => fetchRSVPsForEvent(event.id)}
+            />
+
+            <RSVPList
+              eventId={event.id}
+              currentGuestId={guestId}
+              attendees={rsvpData[event.id] || []}
+            />
           </li>
         ))}
       </ul>

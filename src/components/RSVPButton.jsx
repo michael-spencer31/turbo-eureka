@@ -1,13 +1,11 @@
-// src/components/RSVPButton.jsx
 import { useState } from 'react'
 import { supabase } from '../supabaseClient'
 import toast from 'react-hot-toast'
 
-export default function RSVPButton({ guestId, eventId }) {
+export default function RSVPButton({ guestId, eventId, onRSVP }) {
   const [loading, setLoading] = useState(false)
-  const [rsvped, setRsvped] = useState(false)
 
-  const handleRSVP = async () => {
+  const handleRSVP = async (status) => {
     if (!guestId || !eventId) {
       toast.error('Missing guest or event information.')
       console.error('RSVP error: guestId or eventId missing', { guestId, eventId })
@@ -19,19 +17,28 @@ export default function RSVPButton({ guestId, eventId }) {
     try {
       const { data, error } = await supabase
         .from('rsvps')
-        .insert({ guest_id: guestId, event_id: eventId })
-        .select()
+        .upsert(
+          { guest_id: guestId, event_id: eventId, status },
+          { onConflict: ['guest_id', 'event_id'] }
+        )
+        .select() // 👈 ensure we get a response back
 
       if (error) {
         if (error.code === '23505') {
           toast.error('Already RSVPed.')
+        } else if (error.code === '23514') {
+          toast.error('Invalid RSVP status')
         } else {
           toast.error('Failed to RSVP')
         }
         console.error('RSVP insert error:', error)
       } else if (data && data.length > 0) {
-        toast.success('RSVP successful!')
-        setRsvped(true)
+        toast.success(`RSVP: ${status}`)
+
+        // ✅ Refresh RSVP list if parent passed a callback
+        if (onRSVP) {
+          await onRSVP()
+        }
       } else {
         toast.error('Unexpected response: no data returned from RSVP')
         console.warn('RSVP response:', data)
@@ -45,8 +52,16 @@ export default function RSVPButton({ guestId, eventId }) {
   }
 
   return (
-    <button onClick={handleRSVP} disabled={loading || rsvped}>
-      {rsvped ? 'RSVPed ✔️' : loading ? 'RSVPing…' : 'RSVP'}
-    </button>
+    <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
+      <button onClick={() => handleRSVP('yes')} disabled={loading}>
+        {loading ? 'Saving...' : 'Yes'}
+      </button>
+      <button onClick={() => handleRSVP('maybe')} disabled={loading}>
+        {loading ? 'Saving...' : 'Maybe'}
+      </button>
+      <button onClick={() => handleRSVP('no')} disabled={loading}>
+        {loading ? 'Saving...' : 'No'}
+      </button>
+    </div>
   )
 }
