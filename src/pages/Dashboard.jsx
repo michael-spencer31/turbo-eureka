@@ -13,7 +13,7 @@ import CreateEventForm from '../components/CreateEventForm'
 import HostedEventsList from '../components/HostedEventsList'
 import RSVPButton from '../components/RSVPButton'
 import AvailableEventsList from '../components/AvailableEventsList'
-
+import PhotoUpload from '../components/PhotoUpload'
 
 export default function Dashboard({ guestProfile, handleLogout }) {
   return (

@@ -2,6 +2,9 @@
 import { useState, useEffect } from 'react'
 import React from 'react'
 import Dashboard from './pages/Dashboard'
+// import FAQ from './pages/FAQ'
+import Images from './pages/Images'
+
 import {
   BrowserRouter as Router,
   Routes,
@@ -280,7 +283,7 @@ if (!guestProfile) {
 return (
   <Router>
     <nav>
-      <Link to="/">Home</Link> | <Link to="/dashboard">RSVP Page</Link>
+      <Link to="/">Home</Link> | <Link to="/dashboard">RSVP Page</Link>| <Link to="/images">Images</Link>
     </nav>
 
     <Routes>
@@ -289,14 +292,13 @@ return (
         path="/dashboard"
         element={<Dashboard guestProfile={guestProfile} handleLogout={handleLogout} />}
       />
-    </Routes>
+      <Route
+        path="/images"
+        element={<Images guestProfile={guestProfile} handleLogout={handleLogout} />}
+      />
+      </Routes>
   </Router>
 )
-
-
-
-
-
 
 }
 
