@@ -1,18 +1,22 @@
 // src/App.jsx
 import { useState, useEffect } from 'react'
 import React from 'react'
-import Dashboard from './pages/Dashboard'
-// import FAQ from './pages/FAQ'
-import Images from './pages/Images'
-
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Link,
 } from 'react-router-dom'
+
+import PublicEventPage from './pages/PublicEventPage'
 import { supabase } from './supabaseClient'
 import toast from 'react-hot-toast'
+import SearchUser from './pages/SearchUser'
+import EventByHost from './pages/EventByHost'
+import Search from './pages/Search'
+import Dashboard from './pages/Dashboard'
+import Images from './pages/Images'
+import EventPage from './pages/EventPage' // 👈 Make sure this exists
 import CreateEventForm from './components/CreateEventForm'
 import HostedEventsList from './components/HostedEventsList'
 import RSVPButton from './components/RSVPButton'
@@ -20,68 +24,63 @@ import AvailableEventsList from './components/AvailableEventsList'
 
 function Home () {
   return (
-  <main className="flex flex-col items-center text-center bg-white text-gray-800">
-    {/* Hero Section */}
-    <section className="relative w-full h-[90vh] flex flex-col justify-center items-center bg-cover bg-center" 
-      style={{ backgroundImage: "url('/images/hero-photo.jpg')" }}>
-      <div className="absolute inset-0 bg-black/30"></div>
-      <div className="relative z-10 text-white">
-        <h1 className="text-5xl md:text-7xl font-serif mb-4">Emma & Noah</h1>
-        <p className="text-xl md:text-2xl font-light mb-6">are getting married</p>
-        <p className="text-lg font-medium tracking-wide">June 14, 2026 • Halifax, Nova Scotia</p>
-      </div>
-    </section>
-
-    {/* Countdown Section */}
-    <section className="py-12 px-6 bg-pink-50 w-full">
-      <h2 className="text-3xl font-semibold mb-6">Countdown to Our Big Day</h2>
-      <div id="countdown" className="text-2xl font-light">258 days to go</div>
-    </section>
-
-    {/* Our Story */}
-    <section className="py-16 px-6 max-w-4xl">
-      <h2 className="text-3xl font-semibold mb-8">Our Story</h2>
-      <p className="text-lg leading-relaxed">
-        It all began with a cup of coffee and a shared love for adventure. Over the years, our story has been filled
-        with laughter, late-night talks, and countless memories. Now, we can’t wait to start our next chapter —
-        forever together.
-      </p>
-    </section>
-
-    {/* Wedding Details */}
-    <section className="py-16 px-6 bg-gray-100 w-full">
-      <h2 className="text-3xl font-semibold mb-8">Wedding Details</h2>
-      <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Ceremony</h3>
-          <p>3:00 PM at Saint Mary’s Chapel, Halifax</p>
+    <main className="flex flex-col items-center text-center bg-white text-gray-800">
+      <section
+        className="relative w-full h-[90vh] flex flex-col justify-center items-center bg-cover bg-center"
+        style={{ backgroundImage: "url('/images/hero-photo.jpg')" }}
+      >
+        <div className="absolute inset-0 bg-black/30"></div>
+        <div className="relative z-10 text-white">
+          <h1 className="text-5xl md:text-7xl font-serif mb-4">Emma & Noah</h1>
+          <p className="text-xl md:text-2xl font-light mb-6">are getting married</p>
+          <p className="text-lg font-medium tracking-wide">June 14, 2026 • Halifax, Nova Scotia</p>
         </div>
-        <div>
-          <h3 className="text-xl font-semibold mb-2">Reception</h3>
-          <p>6:00 PM at The Harbourview Ballroom</p>
+      </section>
+
+      <section className="py-12 px-6 bg-pink-50 w-full">
+        <h2 className="text-3xl font-semibold mb-6">Countdown to Our Big Day</h2>
+        <div id="countdown" className="text-2xl font-light">258 days to go</div>
+      </section>
+
+      <section className="py-16 px-6 max-w-4xl">
+        <h2 className="text-3xl font-semibold mb-8">Our Story</h2>
+        <p className="text-lg leading-relaxed">
+          It all began with a cup of coffee and a shared love for adventure...
+        </p>
+      </section>
+
+      <section className="py-16 px-6 bg-gray-100 w-full">
+        <h2 className="text-3xl font-semibold mb-8">Wedding Details</h2>
+        <div className="grid md:grid-cols-2 gap-10 max-w-5xl mx-auto">
+          <div>
+            <h3 className="text-xl font-semibold mb-2">Ceremony</h3>
+            <p>3:00 PM at Saint Mary’s Chapel, Halifax</p>
+          </div>
+          <div>
+            <h3 className="text-xl font-semibold mb-2">Reception</h3>
+            <p>6:00 PM at The Harbourview Ballroom</p>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    {/* RSVP Button */}
-    <section className="py-16 text-center">
-      <h2 className="text-3xl font-semibold mb-6">Join Us!</h2>
-      <p className="text-lg mb-8">We’d love to celebrate with you. Please RSVP by May 1st.</p>
-      <a 
-        href="/rsvp"
-        className="bg-pink-600 text-white px-8 py-3 rounded-full font-medium hover:bg-pink-700 transition">
-        RSVP Now
-      </a>
-    </section>
+      <section className="py-16 text-center">
+        <h2 className="text-3xl font-semibold mb-6">Join Us!</h2>
+        <p className="text-lg mb-8">We’d love to celebrate with you. Please RSVP by May 1st.</p>
+        <a
+          href="/dashboard"
+          className="bg-pink-600 text-white px-8 py-3 rounded-full font-medium hover:bg-pink-700 transition"
+        >
+          RSVP Now
+        </a>
+      </section>
 
-    {/* Footer */}
-    <footer className="py-8 bg-gray-900 text-white w-full text-center">
-      <p>© {new Date().getFullYear()} Emma & Noah’s Wedding • Made with ❤️</p>
-    </footer>
-  </main>
-);
-
+      <footer className="py-8 bg-gray-900 text-white w-full text-center">
+        <p>© {new Date().getFullYear()} Emma & Noah’s Wedding • Made with ❤️</p>
+      </footer>
+    </main>
+  )
 }
+
 function App() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -89,7 +88,6 @@ function App() {
   const [guestProfile, setGuestProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // ✅ Fetch session on mount
   useEffect(() => {
     const getSession = async () => {
       const { data, error } = await supabase.auth.getSession()
@@ -112,7 +110,6 @@ function App() {
 
     getSession()
 
-    // ✅ Auth change listener
     const { data: listener } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         if (session?.user) {
@@ -130,22 +127,14 @@ function App() {
     }
   }, [])
 
-  // ✅ Handle login or signup
   const handleLogin = async (e) => {
     e.preventDefault()
     setLoading(true)
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
-      // Try sign up
-      const { data: signupData, error: signupError } = await supabase.auth.signUp({
-        email,
-        password,
-      })
+      const { data: signupData, error: signupError } = await supabase.auth.signUp({ email, password })
 
       if (signupError) {
         toast.error(signupError.message)
@@ -162,7 +151,6 @@ function App() {
     setLoading(false)
   }
 
-  // ✅ Fetch guest profile
   const fetchGuestProfile = async (userId) => {
     if (!userId) return
 
@@ -182,7 +170,6 @@ function App() {
     }
   }
 
-  // ✅ Handle profile creation
   const handleProfileSave = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -220,7 +207,6 @@ function App() {
     setLoading(false)
   }
 
-  // ✅ Logout
   const handleLogout = async () => {
     await supabase.auth.signOut()
     toast.success('Logged out!')
@@ -230,10 +216,8 @@ function App() {
     setPassword('')
   }
 
-  // ✅ Show loading screen
   if (loading) return <p>Loading...</p>
 
-  // ✅ Show login form
   if (!user) {
     return (
       <div style={{ padding: '2rem' }}>
@@ -259,47 +243,45 @@ function App() {
     )
   }
 
-  // ✅ Show profile form if no profile exists
-  // ✅ Show profile form if no profile exists
-if (!guestProfile) {
+  if (!guestProfile) {
+    return (
+      <div style={{ padding: '2rem' }}>
+        <h2>Complete Your Profile</h2>
+        <form onSubmit={handleProfileSave}>
+          <input type="text" name="first_name" placeholder="First Name" required /><br />
+          <input type="text" name="last_name" placeholder="Last Name" required /><br />
+          <button type="submit">Save Profile</button>
+        </form>
+        <button onClick={handleLogout} style={{ marginTop: '1rem' }}>
+          Log Out
+        </button>
+      </div>
+    )
+  }
+
   return (
-    <div style={{ padding: '2rem' }}>
-      <h2>Complete Your Profile</h2>
-      <form onSubmit={handleProfileSave}>
-        <input type="text" name="first_name" placeholder="First Name" required /><br />
-        <input type="text" name="last_name" placeholder="Last Name" required /><br />
-        <button type="submit">Save Profile</button>
-      </form>
-      <button onClick={handleLogout} style={{ marginTop: '1rem' }}>
-        Log Out
-      </button>
-    </div>
-  )
-}
+    <Router>
+      <nav>
+        <Link to="/">Home</Link> |{' '}
+        <Link to="/dashboard">Dashboard</Link> |{' '}
+        <Link to="/images">Images</Link> | {' '}
+        <Link to="/search">Find an Event</Link>
+      </nav>
 
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard guestProfile={guestProfile} handleLogout={handleLogout} />} />
+        <Route path="/images" element={<Images guestProfile={guestProfile} handleLogout={handleLogout} />} />
+        <Route path="/event-by-host/:hostGuestId" element={<EventByHost guestProfile={guestProfile} />} />
+        <Route path="/search" element={<Search />} />
+        <Route
+          path="/event/:eventId"
+          element={<PublicEventPage guestProfile={guestProfile} />}
+        />
 
-  // ✅ Dashboard after login + profile setup
-
-return (
-  <Router>
-    <nav>
-      <Link to="/">Home</Link> | <Link to="/dashboard">RSVP Page</Link>| <Link to="/images">Images</Link>
-    </nav>
-
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route
-        path="/dashboard"
-        element={<Dashboard guestProfile={guestProfile} handleLogout={handleLogout} />}
-      />
-      <Route
-        path="/images"
-        element={<Images guestProfile={guestProfile} handleLogout={handleLogout} />}
-      />
       </Routes>
-  </Router>
-)
-
+    </Router>
+  )
 }
 
 export default App
