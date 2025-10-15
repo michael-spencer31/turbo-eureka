@@ -6,6 +6,8 @@ export default function PhotoUpload() {
   const [uploading, setUploading] = useState(false)
   const [imageUrls, setImageUrls] = useState([]) // multiple image URLs
   const [userId, setUserId] = useState(null)
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [selectedIndex, setSelectedIndex] = useState(null);
 
   // 🔐 Get current user
   useEffect(() => {
@@ -117,39 +119,207 @@ export default function PhotoUpload() {
     setFile(null)
   }
 
+   // ✅ Close on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") setSelectedImage(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+  const prevImage = () => {
+    setSelectedIndex((prev) => (prev === 0 ? imageUrls.length - 1 : prev - 1));
+  };
+
+  const nextImage = () => {
+    setSelectedIndex((prev) => (prev === imageUrls.length - 1 ? 0 : prev + 1));
+  };
+
   return (
-    <div style={{ marginTop: '2rem' }}>
-      <h3>Upload a Photo</h3>
+    <div style={{ marginTop: "2rem", maxWidth: "600px" }}>
+      <h3 style={{ marginBottom: "1rem" }}>Upload a Photo</h3>
 
-      <input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0])} />
-      <button
-        onClick={handleUpload}
-        disabled={!file || uploading}
-        style={{ marginLeft: '1rem' }}
-      >
-        {uploading ? 'Uploading...' : 'Upload'}
-      </button>
+      {/* Upload Form */}
+      <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={(e) => setFile(e.target.files[0])}
+          style={{ flex: 1 }}
+        />
+        <button
+          onClick={handleUpload}
+          disabled={!file || uploading}
+          style={{
+            padding: "0.5rem 1rem",
+            borderRadius: "6px",
+            border: "none",
+            cursor: uploading ? "not-allowed" : "pointer",
+            backgroundColor: uploading ? "#ccc" : "#007bff",
+            color: "#fff",
+            fontWeight: "bold",
+          }}
+        >
+          {uploading ? "Uploading..." : "Upload"}
+        </button>
+      </div>
 
+      {/* Image Grid */}
       {imageUrls.length > 0 && (
-        <div style={{ marginTop: '2rem' }}>
-          <h4>Your Uploaded Images:</h4>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ marginTop: "2rem" }}>
+          <h4 style={{ marginBottom: "1rem" }}>Your Uploaded Images:</h4>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+              gap: "1rem",
+            }}
+          >
             {imageUrls.map((url, index) => (
-              <img
+              <div
                 key={index}
-                src={url}
-                alt={`Uploaded ${index}`}
                 style={{
-                  width: '200px',
-                  height: 'auto',
-                  borderRadius: '8px',
-                  objectFit: 'cover',
+                  position: "relative",
+                  width: "100%",
+                  height: "200px",
+                  overflow: "hidden",
+                  borderRadius: "10px",
+                  boxShadow: "0 2px 6px rgba(0, 0, 0, 0.15)",
+                  cursor: "pointer",
+                  transition: "transform 0.3s ease, box-shadow 0.3s ease",
                 }}
-              />
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "scale(1.03)";
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 12px rgba(0, 0, 0, 0.25)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "scale(1)";
+                  e.currentTarget.style.boxShadow =
+                    "0 2px 6px rgba(0, 0, 0, 0.15)";
+                }}
+                onClick={() => setSelectedIndex(index)}
+              >
+                <img
+                  src={url}
+                  alt={`Uploaded ${index}`}
+                  style={{
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "cover",
+                    display: "block",
+                  }}
+                />
+              </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Lightbox Modal */}
+      {selectedIndex !== null && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "100vw",
+            height: "100vh",
+            backgroundColor: "rgba(0,0,0,0.85)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 9999,
+            animation: "fadeIn 0.3s ease",
+          }}
+        >
+          {/* Close Button */}
+          <div
+            onClick={() => setSelectedIndex(null)}
+            style={{
+              position: "absolute",
+              top: "20px",
+              right: "20px",
+              fontSize: "28px",
+              fontWeight: "bold",
+              color: "#fff",
+              cursor: "pointer",
+              backgroundColor: "rgba(0,0,0,0.6)",
+              padding: "8px 12px",
+              borderRadius: "6px",
+            }}
+          >
+            ✕
+          </div>
+
+          {/* Prev Button */}
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              prevImage();
+            }}
+            style={{
+              position: "absolute",
+              left: "20px",
+              fontSize: "40px",
+              fontWeight: "bold",
+              color: "#fff",
+              cursor: "pointer",
+              backgroundColor: "rgba(0,0,0,0.6)",
+              padding: "10px 16px",
+              borderRadius: "6px",
+              userSelect: "none",
+            }}
+          >
+            ‹
+          </div>
+
+          {/* Next Button */}
+          <div
+            onClick={(e) => {
+              e.stopPropagation();
+              nextImage();
+            }}
+            style={{
+              position: "absolute",
+              right: "20px",
+              fontSize: "40px",
+              fontWeight: "bold",
+              color: "#fff",
+              cursor: "pointer",
+              backgroundColor: "rgba(0,0,0,0.6)",
+              padding: "10px 16px",
+              borderRadius: "6px",
+              userSelect: "none",
+            }}
+          >
+            ›
+          </div>
+
+          {/* Image */}
+          <img
+            src={imageUrls[selectedIndex]}
+            alt="Enlarged"
+            style={{
+              maxWidth: "85%",
+              maxHeight: "85%",
+              borderRadius: "10px",
+              boxShadow: "0 4px 15px rgba(0,0,0,0.25)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          {/* Fade-in Keyframes */}
+          <style>
+            {`
+              @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+              }
+            `}
+          </style>
+        </div>
+      )}
     </div>
-  )
+  );
 }
