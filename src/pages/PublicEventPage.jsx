@@ -56,7 +56,7 @@ export default function PublicEventPage({ guestProfile }) {
       )}
 
       <h2 className="text-2xl font-semibold mt-10 mb-4">Event Gallery</h2>
-      <PhotoUpload userId={guestProfile.id} />
+      <PhotoUpload userId={guestProfile.id} eventId = {eventId}/>
 
     </div>
   )
