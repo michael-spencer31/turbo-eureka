@@ -1,14 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 
-export default function PhotoUpload() {
+export default function PhotoUpload( eventId) {
   const [file, setFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [imageUrls, setImageUrls] = useState([]); // [{ url, filePath }]
   const [userId, setUserId] = useState(null);
-  const [eventId, setEventId] = useState(null);
   const [selectedIndex, setSelectedIndex] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null)
+  console.log("Received eventId from props:", eventId); // ✅ Should log the correct ID
+
+
+  
   // 🔐 Get current user
   useEffect(() => {
     const getUser = async () => {
@@ -32,62 +35,39 @@ export default function PhotoUpload() {
     if (!userId) return;
 
     const fetchImages = async () => {
-      const { data, error } = await supabase
-        .from('user_images')
-        .select('file_path')
-        .eq('user_id', userId)
-        .order('inserted_at', { ascending: false });
+  if (!eventId) return;
 
-      if (error) {
-        console.error('Error fetching image paths:', error);
-        return;
+  const { data, error } = await supabase
+    .from('user_images')
+    .select('file_path')
+    .eq('event_id', eventId.eventId) // <-- change from user_id to event_id
+    .order('inserted_at', { ascending: false });
+
+  if (error) {
+    console.error('Error fetching image paths:', error);
+    return;
+  }
+
+  // Generate signed URLs
+  const urls = await Promise.all(
+    data.map(async (item) => {
+      const { data: urlData, error: urlError } = await supabase
+        .storage
+        .from('images')
+        .createSignedUrl(item.file_path, 60 * 10);
+
+      if (urlError) {
+        console.warn('Skipping missing image:', item.file_path);
+        return null;
       }
 
-      const urls = await Promise.all(
-        data.map(async (item) => {
-          const pathParts = item.file_path.split('/');
-          const folder = pathParts.slice(0, -1).join('/');
-          const filename = pathParts[pathParts.length - 1];
+      return { url: urlData.signedUrl, filePath: item.file_path };
+    })
+  );
 
-          // Check if file exists
-          const { data: listData, error: listError } = await supabase
-            .storage
-            .from('images')
-            .list(folder);
+  setImageUrls(urls.filter(Boolean)); // remove nulls
+};
 
-          if (listError) {
-            console.error('Error listing folder:', listError);
-            return null;
-          }
-
-          const fileExists = listData?.some(file => file.name === filename);
-          if (!fileExists) {
-            // Clean up missing file references
-            await supabase
-              .from('user_images')
-              .delete()
-              .eq('file_path', item.file_path)
-              .eq('user_id', userId);
-            return null;
-          }
-
-          // Create signed URL
-          const { data: urlData, error: urlError } = await supabase
-            .storage
-            .from('images')
-            .createSignedUrl(item.file_path, 60 * 10);
-
-          if (urlError) {
-            console.error('Error creating signed URL:', urlError);
-            return null;
-          }
-
-          return { url: urlData.signedUrl, filePath: item.file_path };
-        })
-      );
-
-      setImageUrls(urls.filter((item) => item !== null));
-    };
 
     fetchImages();
   }, [userId]);
@@ -116,12 +96,18 @@ export default function PhotoUpload() {
       setUploading(false);
       return;
     }
-
+    console.log("USER ID: ", userId)
+    console.log("EVENT ID: ", eventId.eventId)
     // Save path to DB
     const { error: insertError } = await supabase
       .from('user_images')
-      .insert([{ user_id: userId, file_path: filePath }]);
-
+      .insert([
+        {
+          user_id: userId,
+          event_id: eventId.eventId,
+          file_path: filePath
+        }
+      ])
     if (insertError) {
       console.error('DB insert error:', insertError.message);
       setUploading(false);

@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import toast from 'react-hot-toast'
+import EventAdminPage from '../components/EventAdminPanel'
 import RSVPButton from '../components/RSVPButton'
 import EventGallery from '../components/EventGallery'
 import PhotoUpload from '../components/PhotoUpload'
@@ -48,7 +49,9 @@ export default function PublicEventPage({ guestProfile }) {
       <p className="text-md text-gray-800 mb-6">
         📅 {new Date(event.event_date).toLocaleDateString()}
       </p>
-
+{guestProfile?.role === 'host' && (
+  <EventAdminPanel eventId={eventId} currentUserId={guestProfile.id} />
+)}
       {guestProfile ? (
         <RSVPButton eventId={eventId} guestId={guestProfile.id} />
       ) : (
@@ -56,8 +59,7 @@ export default function PublicEventPage({ guestProfile }) {
       )}
 
       <h2 className="text-2xl font-semibold mt-10 mb-4">Event Gallery</h2>
-      <PhotoUpload userId={guestProfile.id} eventId = {eventId}/>
-
+      <PhotoUpload userId={guestProfile.id} eventId={eventId} />
     </div>
   )
 }
